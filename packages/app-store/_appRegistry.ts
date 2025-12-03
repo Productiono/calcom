@@ -43,6 +43,7 @@ export async function getAppRegistry() {
     select: { dirName: true, slug: true, categories: true, enabled: true, createdAt: true },
   });
   const apps = [] as App[];
+  const processedApps = new Set<string>();
   const installCountPerApp = await getInstallCountPerApp();
 
   if (!dbApps.length) {
@@ -63,6 +64,7 @@ export async function getAppRegistry() {
   for await (const dbapp of dbApps) {
     const app = await getAppWithMetadata(dbapp);
     if (!app) continue;
+    processedApps.add(dbapp.slug);
     // Skip if app isn't installed
     /* This is now handled from the DB */
     // if (!app.installed) return apps;
@@ -75,6 +77,20 @@ export async function getAppRegistry() {
       installCount: installCountPerApp[dbapp.slug] || 0,
     });
   }
+
+  for (const metadata of Object.values(appStoreMetadata)) {
+    if (processedApps.has(metadata.slug)) continue;
+    const app = await getAppWithMetadata({ slug: metadata.slug });
+    if (!app) continue;
+    apps.push({
+      ...app,
+      categories: app.categories || [],
+      category: app.category || "other",
+      installed: !!app.isGlobal,
+      installCount: installCountPerApp[metadata.slug] || 0,
+    });
+  }
+
   return apps;
 }
 
@@ -117,6 +133,7 @@ export async function getAppRegistryWithCredentials(userId: number, userAdminTea
     credentials: Credential[];
     isDefault?: boolean;
   })[];
+  const processedApps = new Set<string>();
   const installCountPerApp = await getInstallCountPerApp();
 
   if (!dbApps.length) {
@@ -154,6 +171,7 @@ export async function getAppRegistryWithCredentials(userId: number, userAdminTea
     const allCredentials = [...delegationCredentialsForApp, ...nonDelegationCredentialsForApp];
     const app = await getAppWithMetadata(dbapp);
     if (!app) continue;
+    processedApps.add(dbapp.slug);
     // Skip if app isn't installed
     /* This is now handled from the DB */
     // if (!app.installed) return apps;
@@ -178,6 +196,30 @@ export async function getAppRegistryWithCredentials(userId: number, userAdminTea
       installCount: installCountPerApp[dbapp.slug] || 0,
       isDefault: usersDefaultApp === dbapp.slug,
       ...(app.dependencies && { dependencyData }),
+    });
+  }
+
+  for (const metadata of Object.values(appStoreMetadata)) {
+    if (processedApps.has(metadata.slug)) continue;
+    const app = await getAppWithMetadata({ slug: metadata.slug });
+    if (!app) continue;
+
+    let dependencyData: TDependencyData = [];
+    if (app.dependencies) {
+      dependencyData = app.dependencies.map((dependency) => {
+        const dependencyName = getAppFromSlug(dependency)?.name;
+        return { name: dependencyName, installed: false };
+      });
+    }
+
+    apps.push({
+      ...app,
+      categories: app.categories || [],
+      credentials: [],
+      installed: !!app.isGlobal,
+      installCount: installCountPerApp[metadata.slug] || 0,
+      isDefault: usersDefaultApp === app.slug,
+      ...(dependencyData.length ? { dependencyData } : {}),
     });
   }
 
