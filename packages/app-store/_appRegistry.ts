@@ -44,6 +44,22 @@ export async function getAppRegistry() {
   });
   const apps = [] as App[];
   const installCountPerApp = await getInstallCountPerApp();
+
+  if (!dbApps.length) {
+    for (const metadata of Object.values(appStoreMetadata)) {
+      const app = await getAppWithMetadata({ slug: metadata.slug });
+      if (!app) continue;
+      apps.push({
+        ...app,
+        categories: app.categories || [],
+        category: app.category || "other",
+        installed: !!app.isGlobal,
+        installCount: installCountPerApp[metadata.slug] || 0,
+      });
+    }
+    return apps;
+  }
+
   for await (const dbapp of dbApps) {
     const app = await getAppWithMetadata(dbapp);
     if (!app) continue;
@@ -102,6 +118,34 @@ export async function getAppRegistryWithCredentials(userId: number, userAdminTea
     isDefault?: boolean;
   })[];
   const installCountPerApp = await getInstallCountPerApp();
+
+  if (!dbApps.length) {
+    for (const metadata of Object.values(appStoreMetadata)) {
+      const app = await getAppWithMetadata({ slug: metadata.slug });
+      if (!app) continue;
+
+      let dependencyData: TDependencyData = [];
+      if (app.dependencies) {
+        dependencyData = app.dependencies.map((dependency) => {
+          const dependencyName = getAppFromSlug(dependency)?.name;
+          return { name: dependencyName, installed: false };
+        });
+      }
+
+      apps.push({
+        ...app,
+        categories: app.categories || [],
+        credentials: [],
+        installed: !!app.isGlobal,
+        installCount: installCountPerApp[metadata.slug] || 0,
+        isDefault: usersDefaultApp === app.slug,
+        ...(dependencyData.length ? { dependencyData } : {}),
+      });
+    }
+
+    return apps;
+  }
+
   for await (const dbapp of dbApps) {
     const delegationCredentialsForApp = delegationCredentials.filter(
       (credential) => credential.appId === dbapp.slug
