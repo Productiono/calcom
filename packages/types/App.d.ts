@@ -56,6 +56,8 @@ export interface App {
    * variables to determine if this is true or not.
    * */
   installed?: boolean;
+  /** Whether the app is enabled (visible) inside the app store */
+  enabled?: boolean;
   /** The app type */
   type:
     | `${string}_calendar`

@@ -53,6 +53,8 @@ export function AppCard({ app, credentials, searchText, userAdminTeams }: AppCar
   });
 
   const [searchTextIndex, setSearchTextIndex] = useState<number | undefined>(undefined);
+  const isHidden = app.enabled === false;
+  const statusLabel = isHidden ? t("hidden") : t("enabled");
 
   useEffect(() => {
     setSearchTextIndex(searchText ? app.name.toLowerCase().indexOf(searchText.toLowerCase()) : undefined);
@@ -226,6 +228,7 @@ export function AppCard({ app, credentials, searchText, userAdminTeams }: AppCar
           )}
       </div>
       <div className="max-w-44 absolute right-0 mr-4 flex flex-wrap justify-end gap-1">
+        <Badge variant={isHidden ? "gray" : "green"}>{statusLabel}</Badge>
         {appAdded > 0 && !isRedirectApp(app.slug) ? (
           <Badge variant="green">{t("installed", { count: appAdded })}</Badge>
         ) : null}

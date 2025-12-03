@@ -29,9 +29,11 @@ const ServerPage = async () => {
     const userRepo = new UserRepository(prisma);
     const userAdminTeams = await userRepo.getUserAdminTeams({ userId: session.user.id });
     userAdminTeamsIds = userAdminTeams?.teams?.map(({ team }) => team.id) ?? [];
-    appStore = await getAppRegistryWithCredentials(session.user.id, userAdminTeamsIds);
+    appStore = await getAppRegistryWithCredentials(session.user.id, userAdminTeamsIds, {
+      includeHidden: true,
+    });
   } else {
-    appStore = await getAppRegistry();
+    appStore = await getAppRegistry({ includeHidden: true });
     userAdminTeamsIds = [];
   }
 
