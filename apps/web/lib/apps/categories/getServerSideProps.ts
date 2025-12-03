@@ -10,9 +10,9 @@ export const getServerSideProps = async (context: GetServerSidePropsContext) => 
 
   let appStore;
   if (session?.user?.id) {
-    appStore = await getAppRegistryWithCredentials(session.user.id, [], { includeHidden: true });
+    appStore = await getAppRegistryWithCredentials(session.user.id);
   } else {
-    appStore = await getAppRegistry({ includeHidden: true });
+    appStore = await getAppRegistry();
   }
 
   const categories = appStore.reduce((c, app) => {

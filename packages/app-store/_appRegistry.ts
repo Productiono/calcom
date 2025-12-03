@@ -13,10 +13,6 @@ export type TDependencyData = {
   installed?: boolean;
 }[];
 
-type AppRegistryOptions = {
-  includeHidden?: boolean;
-};
-
 /**
  * Get App metadata either using dirName or slug
  */
@@ -41,9 +37,9 @@ export async function getAppWithMetadata(app: { dirName: string } | { slug: stri
 }
 
 /** Mainly to use in listings for the frontend, use in getStaticProps or getServerSideProps */
-export async function getAppRegistry({ includeHidden = false }: AppRegistryOptions = {}) {
+export async function getAppRegistry() {
   const dbApps = await prisma.app.findMany({
-    where: includeHidden ? {} : { enabled: true },
+    where: { enabled: true },
     select: { dirName: true, slug: true, categories: true, enabled: true, createdAt: true },
   });
   const apps = [] as App[];
@@ -61,21 +57,16 @@ export async function getAppRegistry({ includeHidden = false }: AppRegistryOptio
       installed:
         true /* All apps from DB are considered installed by default. @TODO: Add and filter our by `enabled` property */,
       installCount: installCountPerApp[dbapp.slug] || 0,
-      enabled: dbapp.enabled,
     });
   }
   return apps;
 }
 
-export async function getAppRegistryWithCredentials(
-  userId: number,
-  userAdminTeams: UserAdminTeams = [],
-  { includeHidden = false }: AppRegistryOptions = {}
-) {
+export async function getAppRegistryWithCredentials(userId: number, userAdminTeams: UserAdminTeams = []) {
   // Get teamIds to grab existing credentials
 
   const dbApps = await prisma.app.findMany({
-    where: includeHidden ? {} : { enabled: true },
+    where: { enabled: true },
     select: {
       ...safeAppSelect,
       credentials: {
@@ -143,7 +134,6 @@ export async function getAppRegistryWithCredentials(
       installCount: installCountPerApp[dbapp.slug] || 0,
       isDefault: usersDefaultApp === dbapp.slug,
       ...(app.dependencies && { dependencyData }),
-      enabled: dbapp.enabled,
     });
   }
 

@@ -18,7 +18,7 @@ export const getStaticProps = async (category: AppCategories) => {
 
   const dbAppsSlugs = appQuery.map((category) => category.slug);
 
-  const appStore = await getAppRegistry({ includeHidden: true });
+  const appStore = await getAppRegistry();
 
   const apps = appStore.filter((app) => dbAppsSlugs.includes(app.slug));
   return {
